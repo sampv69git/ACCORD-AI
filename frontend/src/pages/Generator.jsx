@@ -19,6 +19,7 @@ import {
     FiFileText,
     FiLoader,
 } from "react-icons/fi";
+import API_BASE_URL from "../services/api";
 
 const contractTypes = [
     { value: "Service Agreement", label: "Service Agreement", icon: FiBriefcase },
@@ -107,7 +108,7 @@ function Generator() {
 
             const token = localStorage.getItem("token");
 
-            const response = await fetch("http://127.0.0.1:5000/generate", {
+            const response = await fetch(`${API_BASE_URL}/generate`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

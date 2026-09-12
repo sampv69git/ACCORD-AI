@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { FiFileText, FiShield, FiZap } from "react-icons/fi";
+import API_BASE_URL from "../services/api";
 
 function Login() {
     const navigate = useNavigate();
@@ -38,7 +39,7 @@ function Login() {
         try {
             setLoading(true);
 
-            const response = await fetch("http://127.0.0.1:5000/login", {
+            const response = await fetch(`${API_BASE_URL}/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

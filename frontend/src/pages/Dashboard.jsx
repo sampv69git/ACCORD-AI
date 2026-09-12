@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { FiFileText, FiSearch, FiTrash2, FiEye, FiInbox } from "react-icons/fi";
+import API_BASE_URL from "../services/api";
 
 function Dashboard() {
     const [contracts, setContracts] = useState([]);
@@ -18,7 +19,7 @@ function Dashboard() {
 
                 const token = localStorage.getItem("token");
 
-                const response = await fetch("http://127.0.0.1:5000/my-contracts", {
+                const response = await fetch(`${API_BASE_URL}/my-contracts`, {
                     headers: {
                         "Authorization": `Bearer ${token}`,
                     },
@@ -52,7 +53,7 @@ function Dashboard() {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                `http://127.0.0.1:5000/contract/${contractId}`,
+                `${API_BASE_URL}/contract/${contractId}`,
                 {
                     method: "DELETE",
                     headers: {

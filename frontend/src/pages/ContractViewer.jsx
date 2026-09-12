@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { FiArrowLeft, FiCopy, FiDownload, FiPrinter } from "react-icons/fi";
+import API_BASE_URL from "../services/api";
 
 function ContractViewer() {
     const { id } = useParams();
@@ -15,7 +16,7 @@ function ContractViewer() {
                 const token = localStorage.getItem("token");
 
                 const response = await fetch(
-                    `http://127.0.0.1:5000/contract/${id}`,
+                    `${API_BASE_URL}/contract/${id}`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -38,7 +39,7 @@ function ContractViewer() {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                `http://127.0.0.1:5000/download-pdf/${id}`,
+                `${API_BASE_URL}/download-pdf/${id}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -73,7 +74,7 @@ function ContractViewer() {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                `http://127.0.0.1:5000/download-docx/${id}`,
+                `${API_BASE_URL}/download-docx/${id}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
