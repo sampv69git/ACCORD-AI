@@ -16,3 +16,9 @@ dist/
 .vscode/
 # Uploaded documents
 backend/uploads/
+
+# Local database and generated files
+backend/instance/
+backend/*.db
+backend/*.docx
+backend/*.pdf

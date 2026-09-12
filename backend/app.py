@@ -4,7 +4,7 @@ from services.ai_service import (
     rewrite_clause
 )
 from services.contract_generator import generate_contract
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 from database import db
 from dotenv import load_dotenv
@@ -25,14 +25,28 @@ from flask_jwt_extended import (
     get_jwt_identity,
 )
 
-app = Flask(__name__)
+# DATA_DIR points at a persistent volume in production (e.g. a Render Disk),
+# and falls back to the local backend folder for development.
+DATA_DIR = os.getenv("DATA_DIR", os.path.dirname(os.path.abspath(__file__)))
+FRONTEND_DIST = os.getenv(
+    "FRONTEND_DIST",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "static"),
+)
+
+app = Flask(__name__, static_folder=FRONTEND_DIST, static_url_path="")
 CORS(app)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///accordai.db"
+db_path = os.path.join(DATA_DIR, "accordai.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+    "DATABASE_URL", f"sqlite:///{db_path}"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 bcrypt = Bcrypt(app)
-app.config["JWT_SECRET_KEY"] = "accordai-secret-key-2026-super-secure-random-string"
+jwt_secret_key = os.getenv("JWT_SECRET_KEY")
+if not jwt_secret_key and os.getenv("FLASK_ENV") == "production":
+    raise RuntimeError("JWT_SECRET_KEY environment variable is required")
+app.config["JWT_SECRET_KEY"] = jwt_secret_key or "accordai-local-development-secret"
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=12)
 
 
@@ -42,14 +56,17 @@ UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
-@app.route("/")
-def home():
-    return {"message": "AccordAI Backend is Running 🚀"}
-
-
 @app.route("/health")
 def health():
     return {"status": "OK"}
+
+
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_frontend(path):
+    if path and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    return send_from_directory(app.static_folder, "index.html")
 
 
 @app.route("/upload", methods=["POST"])
@@ -409,4 +426,4 @@ with app.app_context():
         print(contract.id, contract.title)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=os.getenv("FLASK_DEBUG", "false").lower() == "true", port=int(os.getenv("PORT", 5000)))
