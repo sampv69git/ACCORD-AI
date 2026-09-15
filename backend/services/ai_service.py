@@ -2,6 +2,7 @@ import os
 import json
 from groq import Groq
 from dotenv import load_dotenv
+from utils.risk_scoring import compute_risk_score, CRITICAL_CLAUSES
 
 load_dotenv()
 
@@ -11,6 +12,8 @@ client = Groq(
 
 
 def ask_ai(contract_text):
+
+    critical_clauses_list = ", ".join(f'"{c}"' for c in CRITICAL_CLAUSES)
 
     prompt = f"""
 You are an AI Contract Review Assistant.
@@ -34,8 +37,6 @@ Format:
     "duration":"",
     "payment_terms":"",
     "governing_law":"",
-    "risk_level":"",
-    "risk_score":0,
     "summary":"",
     "risky_clauses":[
         {{
@@ -57,32 +58,13 @@ Rules:
 Do NOT use line breaks.
 - The output must be valid JSON.
 Do not include newline characters inside string values.
-- risk_level must be Low, Medium or High.
-- risk_score must be an integer between 0 and 100.
-
-Scoring Guidelines:
-
-0-25 = Very Low Risk
-26-50 = Low Risk
-51-75 = Medium Risk
-76-100 = High Risk
-
-The score should be based on the overall legal and business risk of the contract.
-
-Consider:
-- Number of risky clauses
-- Severity of risky clauses
-- Missing protections
-- Payment risks
-- Termination risks
-- Legal ambiguity
-
-The risk_score must be consistent with the risk_level.
-
-Examples:
-risk_score: 18 -> Low
-risk_score: 62 -> Medium
-risk_score: 91 -> High
+- Do NOT include risk_level or risk_score in the output. Those are computed
+separately from severity and missing_clauses - do not add them yourself.
+- severity (per risky clause) must be exactly one of: "High", "Medium", "Low".
+- missing_clauses must ONLY contain items from this fixed checklist, and only
+if that protection is genuinely absent from the contract: {critical_clauses_list}.
+Do not invent categories outside this list. If all are present, return an
+empty array.
 - Only include risky clauses that exist.
 For every risky clause:
 
@@ -178,14 +160,31 @@ Contract:
     print("=================================")
 
     try:
-        return json.loads(response)
+        data = json.loads(response)
     except json.JSONDecodeError:
         return {
-        "contract_type": "",
-        "risk_level": "Unknown",
-        "summary": "Failed to parse AI response.",
-        "risky_clauses": []
-    }
+            "contract_type": "",
+            "parties": [],
+            "effective_date": "",
+            "duration": "",
+            "payment_terms": "",
+            "governing_law": "",
+            "risk_level": "Unknown",
+            "risk_score": 0,
+            "summary": "Failed to parse AI response.",
+            "risky_clauses": [],
+            "recommendations": [],
+            "missing_clauses": [],
+        }
+
+    score, level = compute_risk_score(
+        data.get("risky_clauses", []),
+        data.get("missing_clauses", []),
+    )
+    data["risk_score"] = score
+    data["risk_level"] = level
+
+    return data
 def ask_contract_question(contract_text, question):
 
     prompt = f"""
